@@ -1,0 +1,11 @@
+@author CA Meijer <hammingweight@gmail.com>
+@copyright 2011 CA Meijer
+@version 0.3.6
+@title Erl8583 documentation
+
+@doc
+== Introduction ==
+
+Erl8583 is a library for constructing and manipulating ISO 8583 messages. Marshallers are provided for packing and unpacking messages into various formats (ASCII, binary and XML).
+
+
