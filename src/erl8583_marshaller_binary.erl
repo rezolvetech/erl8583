@@ -120,7 +120,6 @@ unmarshal_field(1, BinaryFields, _EncodingRules) ->
 	{Value, Rest, erl8583_convert:bitmap_to_list(Value, 64)};
 unmarshal_field(FieldId, BinaryFields, EncodingRules) ->
   Pattern = EncodingRules:get_encoding(FieldId),
-  request_logger:debug("Unmarshall field",{FieldId, BinaryFields, EncodingRules,Pattern}),
   case unmarshal_data_element(Pattern, BinaryFields) of
 		{Value, Rest} ->
 			{Value, Rest, []}
@@ -229,7 +228,6 @@ unmarshal_data_element({ans, lllvar, _MaxLength}, BinaryFields) ->
 	lists:split(N, Rest); 
 unmarshal_data_element({n, fixed, Length}, BinaryFields) ->
 	{NBin, RestBin} = lists:split((Length + 1) div 2, BinaryFields),
-  request_logger:debug("Unmarshall data element",{NBin, RestBin,Length}),
   case Length rem 2 of
 		0 ->
 			{erl8583_convert:bcd_to_ascii_hex(NBin, Length, "0"), RestBin};

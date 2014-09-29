@@ -96,9 +96,7 @@ marshal_bitmap(Message) ->
 
 unmarshal_bitmap(AsciiMessage) ->
 	{AsciiBitmap, Fields} = lists:split(16, AsciiMessage),
-  request_logger:debug("Bitmap",AsciiBitmap),
   Bitmap = erl8583_convert:ascii_hex_to_binary(AsciiBitmap),
-  request_logger:debug("Binary bitmap",Bitmap),
   {erl8583_convert:bitmap_to_list(Bitmap, 0), Fields}.
 
 %% @doc Marshals a field value into an ASCII string using a specified
@@ -124,12 +122,8 @@ unmarshal_field(1, AsciiFields, _EncodingRules) ->
 	{Value, Rest} = unmarshal_data_element({b, fixed, 64}, AsciiFields),
 	{Value, Rest, erl8583_convert:bitmap_to_list(Value, 64)};
 unmarshal_field(FieldId, AsciiFields, EncodingRules) ->
-  request_logger:debug("Unmarshall data field"),
-  request_logger:debug("Field id",FieldId),
   Pattern = EncodingRules:get_encoding(FieldId),
-  request_logger:debug("Encoding rules",Pattern),
 	{FieldValue, MarshalledRest} = unmarshal_data_element(Pattern, AsciiFields),
-  request_logger:debug("Field value",FieldValue),
   {FieldValue, MarshalledRest, []}.
 
 %% @doc Marshals the MTI into an ASCII string.
