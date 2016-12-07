@@ -35,7 +35,7 @@ set_test() ->
 set_negative_id_test() ->
 	Message = erl8583_message:new(),
 	?assertError(_, erl8583_message:set_field(-1, "0200", Message)).
-	
+
 %% Check that we can't add a field more than once.
 set_field_twice_test() ->
 	Message = erl8583_message:new(),
@@ -49,11 +49,19 @@ set_field_not_integer_test() ->
 set_negative_field_test() ->
 	Message = erl8583_message:new(),
 	?assertError(_, erl8583_message:set(-1, "0210", Message)).
-	
+
 %% Error should be thrown if we read an unset field.
 get_unset_field_test() ->
 	Message = erl8583_message:new(),
 	?assertError(_, erl8583_message:get(0, Message)).
+
+%% Should be able to read a set/unset field.
+find_field_test() ->
+	Message = erl8583_message:new(),
+	Message2 = erl8583_message:set(0, <<"0200">>, Message),
+	?assertEqual(<<"0200">>, erl8583_message:get(0, Message2)),
+	?assertEqual({ok, <<"0200">>}, erl8583_message:find(0, Message2)),
+	?assertEqual(error, erl8583_message:find(3, Message2)).
 
 %% Should be able to read a set field.
 get_field_test() ->
@@ -142,7 +150,7 @@ response_1_test() ->
 	[0, 2, 10] = erl8583_message:get_fields(Response2),
 	"hello2" = erl8583_message:get(2, Response2),
 	"0210" = erl8583_message:get(0, Response2).
-	
+
 response_2_test() ->
 	Message = erl8583_message:new([{mapper, ?MODULE}]),
 	Message2 = erl8583_message:set(10, "hello", Message),
@@ -162,7 +170,7 @@ response_3_test() ->
 	[0, 10] = erl8583_message:get_fields(Response),
 	"hello" = erl8583_message:get(10, Response),
 	"0230" = erl8583_message:get(0, Response).
-	
+
 % response shouldn't use the keep the repeat digit.
 response_4_test() ->
 	Message = erl8583_message:new([{mapper, ?MODULE}]),
@@ -170,7 +178,7 @@ response_4_test() ->
 	Response = erl8583_message:response(Message2),
 	[0] = erl8583_message:get_fields(Response),
 	"0432" = erl8583_message:get(0, Response).
-	
+
 remove_fields_test() ->
 	Message = erl8583_message:new([{mapper, ?MODULE}]),
 	Message2 = erl8583_message:set(10, "hello", Message),
@@ -190,7 +198,7 @@ set_list_test() ->
 	[2, 3, 4] = erl8583_message:get_fields(Message3),
 	"foo" = erl8583_message:get(2, Message3),
 	?assertError(_, erl8583_message:set(Fields, Message3)).
-	
+
 update_list_test() ->
 	Message1 = erl8583_message:new(),
 	Message2 = erl8583_message:set(4, "baz", Message1),
@@ -202,13 +210,13 @@ update_list_test() ->
 	Message4 = erl8583_message:update(Fields2, Message3),
 	[2, 3, 4, 5] = erl8583_message:get_fields(Message4),
 	"foobar" = erl8583_message:get(2, Message4).
-	
+
 get_list1_test() ->
 	Message1 = erl8583_message:new(),
 	Message2 = erl8583_message:set(4, "baz", Message1),
 	"baz" = erl8583_message:get([4], Message2),
 	?assertError(_, erl8583_message:get([[4]], Message2)).
-	
+
 get_list2_test() ->
 	Message1 = erl8583_message:new(),
 	Message2 = erl8583_message:set(4, "baz", erl8583_message:new()),
@@ -265,20 +273,20 @@ get_numeric_test() ->
 	Message3 = erl8583_message:update(6, "77", Message2),
 	123 = erl8583_message:get_numeric([5, 2], Message3),
 	77 = erl8583_message:get_numeric(6, Message3).
-	
+
 set_numeric_test() ->
 	Message1 = erl8583_message:new(),
 	Message2 = erl8583_message:set_numeric([5, 2], 123, 12, Message1),
 	Message3 = erl8583_message:set_numeric(6, 77, 2, Message2),
 	"000000000123" = erl8583_message:get([5, 2], Message3),
 	"77" = erl8583_message:get(6, Message3).
-	
+
 update_numeric_test() ->
 	Message1 = erl8583_message:new(),
 	Message2 = erl8583_message:set_numeric([5, 2], 123, 12, Message1),
 	Message3 = erl8583_message:update_numeric([5, 2], 77, 3, Message2),
 	"077" = erl8583_message:get([5, 2], Message3).
-	
+
 is_message_test() ->
 	false = erl8583_message:is_message(3),
 	true = erl8583_message:is_message(#iso8583_message{}).

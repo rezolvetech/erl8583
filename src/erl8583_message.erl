@@ -18,7 +18,7 @@
 %%      a non-negative integer. The value can be an ASCII string, a binary
 %%      another message. Integer values, e.g. a PAN should be encoded as
 %%      strings.
-%%      
+%%
 %%      The identifier 0 is associated with the MTI of a message.
 %%
 %%      Optionally attributes can be set for a message (e.g. indicating
@@ -35,17 +35,18 @@
 %%
 %% Exported Functions
 %%
--export([new/0, 
-		 new/1, 
-		 set/3, 
+-export([new/0,
+		 new/1,
+		 set/3,
 		 set/2,
 		 set_numeric/4,
-		 get/2, 
+		 get/2,
 		 get_numeric/2,
-		 get_fields/1, 
-		 to_list/1, 
-		 from_list/1, 
-		 set_attributes/2, 
+		 get_fields/1,
+		 find/2,
+		 to_list/1,
+		 from_list/1,
+		 set_attributes/2,
 		 get_attributes/1,
 		 update/3,
 		 update/2,
@@ -82,7 +83,7 @@ new() ->
 
 new(Attributes) ->
 	#iso8583_message{attributes=Attributes}.
-	
+
 %% @doc Sets the value of a field in a message and returns an updated
 %%      message. If the value for the field is already set, an exception
 %%      is thrown. The field can be specified as an integer or as a
@@ -128,7 +129,7 @@ set_numeric(FieldId, FieldValue, FieldLength, Message) ->
 
 
 %% @doc Sets the values of zero or more fields in a message and returns an updated
-%%      message. The field IDs and field values are passed as 2-tuples in 
+%%      message. The field IDs and field values are passed as 2-tuples in
 %%      a list.
 %%
 %% @spec set(list({integer(), iso8583field_value()}), iso8583message()) -> iso8583message()
@@ -138,7 +139,7 @@ set([], Message) ->
 	Message;
 set([{FieldId, FieldValue}|Tail], Message) ->
 	set(Tail, set(FieldId, FieldValue, Message)).
-	
+
 %% @doc Gets the value of a field from a message given a field ID or a list
 %%      of identifiers. A list of integers indicates that
 %%      some field is a submessage; e.g. [127, 2] would indicate field 2
@@ -156,7 +157,7 @@ get(FieldId, #iso8583_message{values=Dict}) when is_integer(FieldId) ->
 	dict:fetch(FieldId, Dict).
 
 %% @doc Gets the integer value of a field from a message given a field ID or a list
-%%      of identifiers. A list of integers indicates that some field is a submessage; 
+%%      of identifiers. A list of integers indicates that some field is a submessage;
 %%      e.g. [127, 2] would indicate field 2 in field 127 of the original message.
 %%
 %% @spec get_numeric(FieldId::integer()|list(integer()), iso8583message()) -> integer()
@@ -173,6 +174,11 @@ get_numeric(FieldId, Message) ->
 
 get_fields(#iso8583_message{values=Dict}) ->
 	lists:sort(dict:fetch_keys(Dict)).
+
+%% TODO: doc
+-spec(find(FieldId::integer(), iso8583message()) -> {ok, iso8583field_value()}|error).
+find(FieldId, #iso8583_message{values=Dict}) when is_integer(FieldId) ->
+	dict:find(FieldId, Dict).
 
 %% @doc Returns an encoding of a message as a list of
 %%      {Field, Value} pairs.
@@ -209,7 +215,7 @@ get_attribute(Key, #iso8583_message{attributes=Attrs}) ->
 set_attribute(Key, Value, #iso8583_message{attributes=Attrs} = Message) ->
 	[] = [KeyId || {KeyId, _} <- Attrs, KeyId =:= Key],
 	Message#iso8583_message{attributes=[{Key, Value}] ++ Attrs}.
-	
+
 %% @doc Updates or sets the value of an attribute of a message. The attribute need
 %%      not have been previously set.
 %%
@@ -219,7 +225,7 @@ set_attribute(Key, Value, #iso8583_message{attributes=Attrs} = Message) ->
 update_attribute(Key, Value, Message) ->
 	UpdatedMessage = delete_attribute(Key, Message),
 	set_attribute(Key, Value, UpdatedMessage).
-	
+
 %% @doc Updates or sets the value of an attribute of a message. The attribute need
 %%      not have been previously set.
 %%
@@ -229,7 +235,7 @@ update_attribute(Key, Value, Message) ->
 delete_attribute(Key, #iso8583_message{attributes=Attrs} = Message) ->
 	UpdatedAttrs = [{KeyId, Val} || {KeyId, Val} <- Attrs, KeyId =/= Key],
 	Message#iso8583_message{attributes=UpdatedAttrs}.
-	
+
 
 %% @doc Constructs an ISO 8583 message from a list
 %%      of {Id, Value} pairs.
@@ -270,7 +276,7 @@ update(FieldId, FieldValue, #iso8583_message{values=Dict}=Message) when is_integ
 
 
 %% @doc Sets or updates the values of zero or more fields in a message and returns an updated
-%%      message. The field IDs and field values are passed as 2-tuples in 
+%%      message. The field IDs and field values are passed as 2-tuples in
 %%      a list.
 %%
 %% @spec update(list({integer(), iso8583field_value()}), iso8583message()) -> iso8583message()
@@ -297,7 +303,7 @@ update([{FieldId, FieldValue}|Tail], Message) ->
 update_numeric(FieldId, FieldValue, FieldLength, Message) ->
 	Value = erl8583_convert:integer_to_string(FieldValue, FieldLength),
 	update(FieldId, Value, Message).
-	
+
 %% @doc Updates the message type of a message to indicate that it's a repeat.
 %%
 %% @spec repeat(iso8583message()) -> iso8583message()
@@ -305,7 +311,7 @@ update_numeric(FieldId, FieldValue, FieldLength, Message) ->
 
 repeat(Message) ->
 	[M1, M2, M3, M4] = get(?MTI, Message),
-	if 
+	if
 		M4 =:= $0 orelse M4 =:= $2 orelse M4 =:= $4 ->
 			M4Updated = M4 + 1;
 		M4 =:= $1 orelse M4 =:= $3 orelse M4 =:= $5 ->
@@ -324,7 +330,7 @@ clone_fields(FieldIds, Message) ->
 	clone_fields(FieldIds, Message, new(get_attributes(Message))).
 
 %% @doc Creates a response message for a message where the response has
-%%      the same field values as the original message. The MTI is changed 
+%%      the same field values as the original message. The MTI is changed
 %%      to indicate that the message is a response.
 %%
 %% @spec response(iso8583message()) -> iso8583message()
@@ -362,7 +368,7 @@ remove_fields(FieldIds, #iso8583_message{values=Dict}=Message) ->
 	UpdatedDict = remove_fields_from_dict(FieldIds, Dict),
 %%   request_logger:debug("Updated dict",UpdatedDict),
   Message#iso8583_message{values=UpdatedDict}.
-	
+
 %% @doc A convenient function for setting the message type identifier (MTI)
 %%      of a message.
 %%
@@ -390,7 +396,7 @@ is_message(#iso8583_message{}) ->
 	true;
 is_message(_NonMessage) ->
 	false.
-	
+
 %%
 %% Local Functions
 %%
@@ -403,7 +409,7 @@ clone_fields([], _Msg, Result) ->
 	Result;
 clone_fields([FieldId|Tail], Msg, Result) ->
 	clone_fields(Tail, Msg, update(FieldId, get(FieldId, Msg), Result)).
-	
+
 remove_fields_from_dict([], Dict) ->
 	Dict;
 remove_fields_from_dict([FieldId|Tail], Dict) ->
